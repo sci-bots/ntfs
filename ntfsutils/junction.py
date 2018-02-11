@@ -8,12 +8,15 @@
 __all__ = ["create", "readlink", "unlink", "isjunction"]
 
 import os
-import fs
-from fs import CreateFile, GetFileAttributes, DeviceIoControl, CloseHandle
 
 import ctypes
 from ctypes import WinError, sizeof, byref
 from ctypes.wintypes import DWORD
+
+from ntfsutils.fs import (CreateFile, GetFileAttributes, DeviceIoControl,
+                          CloseHandle)
+import ntfsutils.fs as fs
+
 
 IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003
 

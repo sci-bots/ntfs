@@ -6,13 +6,16 @@
 
 __all__ = ["create", "samefile"]
 
-import fs
 import ctypes
 from ctypes import WinError
 from ctypes.wintypes import BOOL
+
+import ntfsutils.fs as fs
+
 CreateHardLink = ctypes.windll.kernel32.CreateHardLinkW
 CreateHardLink.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_void_p]
 CreateHardLink.restype = BOOL
+
 
 def create(source, link_name):
     """
