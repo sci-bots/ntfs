@@ -25,6 +25,7 @@ def create(source, link_name):
     if res == 0:
         raise WinError()
 
+
 def samefile(path1, path2):
     """
     Returns True if path1 and path2 refer to the same file.

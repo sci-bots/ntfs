@@ -20,11 +20,12 @@ import ntfsutils.fs as fs
 
 IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003
 
-FSCTL_SET_REPARSE_POINT    = 0x000900A4
-FSCTL_GET_REPARSE_POINT    = 0x000900A8
+FSCTL_SET_REPARSE_POINT = 0x000900A4
+FSCTL_GET_REPARSE_POINT = 0x000900A8
 FSCTL_DELETE_REPARSE_POINT = 0x000900AC
 
-def new_junction_reparse_buffer(path=None):    
+
+def new_junction_reparse_buffer(path=None):
     """
     Given a path, return a pair containing a new REPARSE_DATA_BUFFER and the
     length of the buffer (not necessarily the same as sizeof due to packing
@@ -61,14 +62,15 @@ def new_junction_reparse_buffer(path=None):
                     ("SubstituteNameLength", ctypes.c_ushort),
                     ("PrintNameOffset", ctypes.c_ushort),
                     ("PrintNameLength", ctypes.c_ushort),
-                    ("SubstituteNameBuffer", ctypes.c_wchar * substnamebufferchars),
+                    ("SubstituteNameBuffer", ctypes.c_wchar *
+                     substnamebufferchars),
                     ("PrintNameBuffer", ctypes.c_wchar * 1)]
 
     numpathbytes = (substnamebufferchars - 1) * sizeof(ctypes.c_wchar)
     # We can't really use sizeof on the struct because of packing issues.
     # Instead, calculate the size manually
-    buffersize = (numpathbytes + (sizeof(ctypes.c_wchar) * 2) + 
-        (sizeof(ctypes.c_ushort) * 4))
+    buffersize = (numpathbytes + (sizeof(ctypes.c_wchar) * 2) +
+                  (sizeof(ctypes.c_ushort) * 4))
     if path is None:
         buffer = REPARSE_DATA_BUFFER()
         buffer.ReparseTag = IO_REPARSE_TAG_MOUNT_POINT
@@ -86,7 +88,9 @@ def new_junction_reparse_buffer(path=None):
             # substitute name
             "")
 
-    return (buffer, buffersize + REPARSE_DATA_BUFFER.SubstituteNameOffset.offset)
+    return (buffer, buffersize +
+            REPARSE_DATA_BUFFER.SubstituteNameOffset.offset)
+
 
 def unparsed_convert(path):
     path = os.path.abspath(path)
@@ -97,10 +101,12 @@ def unparsed_convert(path):
     # \\?\, since that doesn't tolerate a different case.
     return "\\??\\" + path
 
+
 def unparsed_unconvert(path):
     if path[0:4] == "\\??\\":
         path = path[4:]
     return path
+
 
 def isjunction(path):
     if not os.path.exists(path) or not fs.junctions_supported(path):
@@ -109,6 +115,7 @@ def isjunction(path):
     attrs = GetFileAttributes(path)
     return bool((attrs & fs.FILE_ATTRIBUTE_DIRECTORY) and
                 (attrs & fs.FILE_ATTRIBUTE_REPARSE_POINT))
+
 
 def create(source, link_name):
     """
@@ -124,10 +131,10 @@ def create(source, link_name):
     os.mkdir(link_name)
 
     # Get a handle to the directory
-    hlink = CreateFile(link_name, fs.GENERIC_WRITE,
-        fs.FILE_SHARE_READ | fs.FILE_SHARE_WRITE, None, fs.OPEN_EXISTING,
-        fs.FILE_FLAG_OPEN_REPARSE_POINT | fs.FILE_FLAG_BACKUP_SEMANTICS,
-        None)
+    hlink = CreateFile(link_name, fs.GENERIC_WRITE, fs.FILE_SHARE_READ |
+                       fs.FILE_SHARE_WRITE, None, fs.OPEN_EXISTING,
+                       fs.FILE_FLAG_OPEN_REPARSE_POINT |
+                       fs.FILE_FLAG_BACKUP_SEMANTICS, None)
     try:
         if hlink == fs.INVALID_HANDLE_VALUE:
             raise WinError()
@@ -155,18 +162,18 @@ def create(source, link_name):
         if not success:
             os.rmdir(link_name)
 
+
 def readlink(path):
     # Make sure the path exists and is actually a junction
     if not isjunction(path):
         raise Exception("%s does not exist or is not a junction" % path)
 
     hlink = CreateFile(path, fs.GENERIC_READ, fs.FILE_SHARE_READ, None,
-        fs.OPEN_EXISTING,
-        fs.FILE_FLAG_OPEN_REPARSE_POINT | fs.FILE_FLAG_BACKUP_SEMANTICS,
-        None)
+                       fs.OPEN_EXISTING, fs.FILE_FLAG_OPEN_REPARSE_POINT |
+                       fs.FILE_FLAG_BACKUP_SEMANTICS, None)
     if hlink == fs.INVALID_HANDLE_VALUE:
         raise WinError()
-    
+
     try:
         (junctioninfo, infolen) = new_junction_reparse_buffer()
         dummy = DWORD(0)
@@ -179,13 +186,14 @@ def readlink(path):
             infolen,
             byref(dummy),
             None)
-        
+
         if res == 0:
             raise WinError()
 
         return unparsed_unconvert(junctioninfo.SubstituteNameBuffer)
     finally:
         CloseHandle(hlink)
+
 
 def unlink(path):
     # Make sure the path exists and is actually a junction
